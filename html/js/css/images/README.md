@@ -8,3 +8,5 @@ A simple static website designed to be served by nginx on Azure.
 
 ## Deployment
 This application will be deployed to an Ubuntu VM on Azure running nginx.
+
+## Author: Doogmann
