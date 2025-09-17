@@ -1,0 +1,107 @@
+name: Deploy to Azure VM
+
+# Triggers
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Manual trigger option
+
+jobs:
+  # Build job runs on GitHub-hosted runner
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create deployment package
+      run: |
+        cd html
+        tar -czf ../website.tar.gz .
+        cd ..
+        echo "Package created: $(ls -lh website.tar.gz)"
+
+    - name: Upload deployment package
+      uses: actions/upload-artifact@v4
+      with:
+        name: website-package
+        path: website.tar.gz
+        retention-days: 1
+
+  # Deploy job runs on self-hosted runner (our VM)
+  deploy:
+    runs-on: self-hosted
+    needs: build  # Requires build job to complete first
+
+    steps:
+    - name: Download deployment package
+      uses: actions/download-artifact@v4
+      with:
+        name: website-package
+
+    - name: Deploy to nginx
+      run: |
+        echo "Starting deployment..."
+
+        # Create backup of current deployment
+        if [ -d "/var/www/myapp" ]; then
+          sudo rm -rf /var/www/myapp.backup
+          sudo cp -r /var/www/myapp /var/www/myapp.backup
+          echo "Backup created"
+        fi
+
+        # Deploy new version
+        sudo mkdir -p /var/www/myapp.new
+        sudo tar -xzf website.tar.gz -C /var/www/myapp.new
+
+        # Atomic switch
+        sudo rm -rf /var/www/myapp.old
+        if [ -d "/var/www/myapp" ]; then
+          sudo mv /var/www/myapp /var/www/myapp.old
+        fi
+        sudo mv /var/www/myapp.new /var/www/myapp
+
+        # Set permissions
+        sudo chown -R www-data:www-data /var/www/myapp
+
+        # Reload nginx
+        sudo nginx -t && sudo systemctl reload nginx
+        echo "Deployment completed"
+
+    - name: Verify deployment
+      run: |
+        # Wait for nginx to reload
+        sleep 2
+
+        # Check health endpoint
+        if curl -f http://localhost/health; then
+          echo "✅ Health check passed"
+        else
+          echo "❌ Health check failed"
+          exit 1
+        fi
+
+        # Verify index page
+        if curl -f http://localhost | grep -q "Azure Web Application"; then
+          echo "✅ Content verification passed"
+        else
+          echo "❌ Content verification failed"
+          exit 1
+        fi
+
+    - name: Rollback on failure
+      if: failure()
+      run: |
+        echo "⚠️ Deployment failed, initiating rollback..."
+
+        if [ -d "/var/www/myapp.backup" ]; then
+          sudo rm -rf /var/www/myapp
+          sudo mv /var/www/myapp.backup /var/www/myapp
+          sudo chown -R www-data:www-data /var/www/myapp
+          sudo systemctl reload nginx
+          echo "✅ Rollback completed"
+        else
+          echo "❌ No backup available for rollback"
+        fi

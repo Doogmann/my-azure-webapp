@@ -1,0 +1,48 @@
+#cloud-config
+
+# Update and install packages
+package_update: true
+package_upgrade: true
+
+packages:
+  - nginx
+  - curl
+  - wget
+  - unzip
+
+# Configure nginx site
+write_files:
+  - path: /etc/nginx/sites-available/default
+    content: |
+      server {
+          listen 80 default_server;
+          listen [::]:80 default_server;
+
+          root /var/www/myapp;
+          index index.html;
+
+          server_name _;
+
+          location / {
+              try_files $uri $uri/ =404;
+          }
+
+          # Health check endpoint
+          location /health {
+              access_log off;
+              return 200 "healthy\n";
+              add_header Content-Type text/plain;
+          }
+      }
+    owner: root:root
+    permissions: '0644'
+
+# Setup deployment directory
+runcmd:
+  - mkdir -p /var/www/myapp
+  - chown -R www-data:www-data /var/www/myapp
+  - systemctl restart nginx
+  - systemctl enable nginx
+  # Create placeholder page
+  - echo "<h1>Awaiting deployment...</h1>" > /var/www/myapp/index.html
+
