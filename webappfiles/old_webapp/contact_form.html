@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact Form - Azure MySQL Contact App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header><h1>✉️ Contact Form</h1></header>
+
+    <nav>
+      <a href="index.html" class="btn">Home</a>
+      <a href="contact_form.html" class="btn active">Contact Form</a>
+      <a href="on_get_messages.php" class="btn">View Messages</a>
+    </nav>
+
+    <main>
+      <form action="on_post_contact.php" method="POST" enctype="multipart/form-data" class="contact-form">
+        <div class="form-group">
+          <label for="name">Name:</label>
+          <input id="name" name="name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input id="email" name="email" type="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="message">Message:</label>
+          <textarea id="message" name="message" rows="5" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="attachment">Attachment (optional):</label>
+          <input id="attachment" name="attachment" type="file" />
+        </div>
+
+        <button type="submit" class="btn submit-btn">Send Message</button>
+      </form>
+      <form action="on_post_contact.php" method="POST" enctype="multipart/form-data">
+  
+
+    </main>
+  </div>
+</body>
+</html>
